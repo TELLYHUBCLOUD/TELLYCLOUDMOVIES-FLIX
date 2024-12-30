@@ -550,7 +550,7 @@ async function fetchGenres() {
     const response = await axios.get(`${API_BASE_URL}/genre/movie/list`, {
       params: {
         api_key: API_KEY,
-        language: 'hi-US'
+        language: 'en-US'
       }
     });
     const genreFilter = document.getElementById('genreFilter');
@@ -609,7 +609,7 @@ async function fetchMovies(append = false) {
         ...currentFilters,
         include_adult: true,
         include_video: true,
-        language: 'hi-US'
+        language: 'en-US'
       }
     });
     totalPages = response.data.total_pages;
@@ -709,7 +709,7 @@ function updateHeroSection(movie) {
     <div class="hero-meta">
       <span>⭐ ${movie.vote_average.toFixed(1)}</span>
       <span>📅 ${movie.release_date}</span>
-      <span>📅 ${movie.language}</span>
+      <span>🗣️ ${movie.language}</span>
     </div>
   `;
 }
@@ -720,7 +720,7 @@ async function searchMovies(query) {
         api_key: API_KEY,
         query: query,
         include_adult: true,
-        language: 'hi-US',
+        language: 'en-US',
         page: 1
       }
     });
