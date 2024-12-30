@@ -675,7 +675,7 @@ function showMovieDetails(movie) {
   details.innerHTML = `
     <p>Release Date: ${movie.release_date}</p>
     <p>Rating: ${movie.vote_average.toFixed(1)}</p>
-    <p>Language: ${movie.languages}</p>
+    <p>Language: ${movie.language}</p>
   `;
   playButton.onclick = () => {
     startMoviePlayback(movie.id);
@@ -709,7 +709,7 @@ function updateHeroSection(movie) {
     <div class="hero-meta">
       <span>⭐ ${movie.vote_average.toFixed(1)}</span>
       <span>📅 ${movie.release_date}</span>
-      <span>📅 ${movie.languages}</span>
+      <span>📅 ${movie.language}</span>
     </div>
   `;
 }
