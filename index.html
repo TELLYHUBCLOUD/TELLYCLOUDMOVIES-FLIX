@@ -607,7 +607,7 @@ async function fetchMovies(append = false) {
         api_key: API_KEY,
         page: currentPage,
         ...currentFilters,
-        include_adult: false,
+        include_adult: true,
         include_video: true,
         language: 'en-US'
       }
@@ -719,7 +719,7 @@ async function searchMovies(query) {
       params: {
         api_key: API_KEY,
         query: query,
-        include_adult: false,
+        include_adult: true,
         language: 'en-US',
         page: 1
       }
