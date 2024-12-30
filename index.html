@@ -526,7 +526,8 @@
   </div>
 </div>
 
-<script>const API_KEY = '15d2ea6d0dc1d476efbca3eba2b9bbfb';
+<script>
+const API_KEY = '15d2ea6d0dc1d476efbca3eba2b9bbfb';
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 const IMG_BASE_URL = 'https://image.tmdb.org/t/p';
 const DISCOVER_URL = `${API_BASE_URL}/discover/movie`;
@@ -542,16 +543,16 @@ let currentFilters = {
   country: ''
 };
 const preventStretching = true;
+
 document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([fetchGenres(), populateYearFilter(), fetchLanguages(), fetchCountries(), fetchMovies()]);
+  setupEventListeners();
 });
+
 async function fetchGenres() {
   try {
     const response = await axios.get(`${API_BASE_URL}/genre/movie/list`, {
-      params: {
-        api_key: API_KEY,
-        language: 'en-US'
-      }
+      params: { api_key: API_KEY, language: 'en-US' }
     });
     const genreFilter = document.getElementById('genreFilter');
     response.data.genres.forEach(genre => {
@@ -564,12 +565,11 @@ async function fetchGenres() {
     console.error('Error fetching genres:', error);
   }
 }
+
 async function fetchLanguages() {
   try {
     const response = await axios.get(`${API_BASE_URL}/configuration/languages`, {
-      params: {
-        api_key: API_KEY
-      }
+      params: { api_key: API_KEY }
     });
     const languageFilter = document.getElementById('languageFilter');
     response.data.forEach(language => {
@@ -582,12 +582,11 @@ async function fetchLanguages() {
     console.error('Error fetching languages:', error);
   }
 }
+
 async function fetchCountries() {
   try {
     const response = await axios.get(`${API_BASE_URL}/configuration/countries`, {
-      params: {
-        api_key: API_KEY
-      }
+      params: { api_key: API_KEY }
     });
     const countryFilter = document.getElementById('countryFilter');
     response.data.forEach(country => {
@@ -600,19 +599,36 @@ async function fetchCountries() {
     console.error('Error fetching countries:', error);
   }
 }
+
 async function fetchMovies(append = false) {
   try {
+    const filters = { ...currentFilters };
+
+    if (filters.duration) {
+      const [minDuration, maxDuration] = filters.duration.split('-');
+      filters['with_runtime.gte'] = minDuration;
+      filters['with_runtime.lte'] = maxDuration;
+    }
+
     const response = await axios.get(DISCOVER_URL, {
       params: {
         api_key: API_KEY,
         page: currentPage,
-        ...currentFilters,
+        with_genres: filters.with_genres,
+        primary_release_year: filters.year,
+        sort_by: filters.sort_by,
+        with_original_language: filters.language,
+        region: filters.country,
+        'with_runtime.gte': filters['with_runtime.gte'],
+        'with_runtime.lte': filters['with_runtime.lte'],
         include_adult: false,
         include_video: true,
-        language: 'en-US'
+        language: 'en-US',
       }
     });
+
     totalPages = response.data.total_pages;
+
     if (currentPage === 1) {
       const featuredMovie = response.data.results[0];
       updateHeroSection(featuredMovie);
@@ -623,18 +639,22 @@ async function fetchMovies(append = false) {
     console.error('Error fetching movies:', error);
   }
 }
+
 function renderMovies(movies, append = false) {
   const moviesGrid = document.getElementById('moviesGrid');
   const suggestionsGrid = document.getElementById('suggestions');
+
   if (!append) {
     moviesGrid.innerHTML = '';
     suggestionsGrid.innerHTML = '';
   }
+
   const moviesToDisplay = movies.slice(0, 55);
   moviesToDisplay.forEach(movie => {
     const movieCard = createMovieCard(movie);
     moviesGrid.appendChild(movieCard);
   });
+
   if (currentPage === 1) {
     const suggestions = movies.slice(55, 55 + SUGGESTIONS_COUNT * 11);
     suggestions.forEach(movie => {
@@ -644,10 +664,10 @@ function renderMovies(movies, append = false) {
     suggestionsGrid.style.display = 'grid';
   }
 }
+
 function createMovieCard(movie) {
   const card = document.createElement('div');
-  card.className = 'movie-card';
-  card.classList.add('suggestion-card');
+  card.className = 'movie-card suggestion-card';
   card.innerHTML = `
     <div class="movie-poster" style="background-image: url(${IMG_BASE_URL}/w500${movie.poster_path})"></div>
     <div class="movie-info">
@@ -658,141 +678,44 @@ function createMovieCard(movie) {
   card.addEventListener('click', () => showMovieDetails(movie));
   return card;
 }
-function showMovieDetails(movie) {
-  const modal = document.getElementById('movieModal');
-  const backdrop = modal.querySelector('.modal-backdrop');
-  const title = modal.querySelector('.modal-title');
-  const overview = modal.querySelector('.modal-overview');
-  const details = modal.querySelector('.modal-details');
-  const playButton = modal.querySelector('.play-button');
-  const videoContainer = modal.querySelector('.video-container');
-  const videoIframe = document.getElementById('moviePlayer');
-  videoContainer.style.display = 'none';
-  videoIframe.src = '';
-  backdrop.src = `${IMG_BASE_URL}/original${movie.backdrop_path}`;
-  title.textContent = movie.title;
-  overview.textContent = movie.overview;
-  details.innerHTML = `
-    <p>Release Date: ${movie.release_date}</p>
-    <p>Rating: ${movie.vote_average.toFixed(1)}</p>
-  `;
-  playButton.onclick = () => {
-    startMoviePlayback(movie.id);
-    playButton.style.display = 'none';
-  };
-  modal.style.display = 'block';
-  modal.querySelector('.modal-content').classList.add('glow');
-}
-document.querySelector('.close-modal').addEventListener('click', () => {
-  const modal = document.getElementById('movieModal');
-  const videoContainer = modal.querySelector('.video-container');
-  const videoIframe = document.getElementById('moviePlayer');
-  modal.style.display = 'none';
-  videoContainer.style.display = 'none';
-  videoIframe.src = '';
-  document.querySelector('.play-button').style.display = 'block';
-  document.querySelector('.modal-content').classList.remove('glow');
-});
-function updateHeroSection(movie) {
-  const heroSection = document.querySelector('.hero');
-  const heroContent = document.querySelector('.hero-content');
-  heroSection.style.background = `
-    linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-    url('${IMG_BASE_URL}/original${movie.backdrop_path}')
-  `;
-  heroSection.style.backgroundSize = 'cover';
-  heroSection.style.backgroundPosition = 'center center';
-  heroContent.innerHTML = `
-    <h1>${movie.title}</h1>
-    <p>${movie.overview}</p>
-    <div class="hero-meta">
-      <span>⭐ ${movie.vote_average.toFixed(1)}</span>
-      <span>📅 ${movie.release_date}</span>
-    </div>
-  `;
-}
-async function searchMovies(query) {
-  try {
-    const searchResponse = await axios.get(`${API_BASE_URL}/search/movie`, {
-      params: {
-        api_key: API_KEY,
-        query: query,
-        include_adult: false,
-        language: 'en-US',
-        page: 1
-      }
-    });
-    displaySearchResults(searchResponse.data.results);
-  } catch (error) {
-    console.error('Error searching movies:', error);
-  }
-}
-function displaySearchResults(results) {
-  const searchResults = document.querySelector('.search-results');
-  searchResults.innerHTML = '';
-  results.slice(0, 5).forEach(movie => {
-    const resultItem = document.createElement('div');
-    resultItem.className = 'search-result-item';
-    resultItem.innerHTML = `
-      <img src="${IMG_BASE_URL}/w92${movie.poster_path}" alt="${movie.title}">
-      <div>
-        <div class="movie-title">${movie.title}</div>
-        <div class="movie-rating">⭐ ${movie.vote_average.toFixed(1)}</div>
-      </div>
-    `;
-    resultItem.addEventListener('click', () => {
-      showMovieDetails(movie);
-      searchResults.style.display = 'none';
-    });
-    searchResults.appendChild(resultItem);
-  });
-  searchResults.style.display = results.length > 0 ? 'block' : 'none';
-}
+
 function setupEventListeners() {
   document.getElementById('genreFilter').addEventListener('change', e => {
     currentFilters.with_genres = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
+
   document.getElementById('yearFilter').addEventListener('change', e => {
     currentFilters.year = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
+
   document.getElementById('durationFilter').addEventListener('change', e => {
     currentFilters.duration = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
+
   document.getElementById('languageFilter').addEventListener('change', e => {
     currentFilters.language = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
+
   document.getElementById('countryFilter').addEventListener('change', e => {
     currentFilters.country = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
+
   document.getElementById('sortFilter').addEventListener('change', e => {
     currentFilters.sort_by = e.target.value;
     currentPage = 1;
     fetchMovies();
   });
-  const searchBar = document.querySelector('.search-bar');
-  const searchResults = document.querySelector('.search-results');
-  let searchTimeout;
-  searchBar.addEventListener('input', e => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      const query = e.target.value.trim();
-      if (query.length >= 3) {
-        searchMovies(query);
-      } else {
-        searchResults.style.display = 'none';
-      }
-    }, 500);
-  });
+
   document.getElementById('loadMoreMovies').addEventListener('click', () => {
     if (currentPage < totalPages) {
       currentPage++;
@@ -802,35 +725,7 @@ function setupEventListeners() {
     }
   });
 }
-function startMoviePlayback(movieId) {
-  const videoContainer = document.querySelector('.video-container');
-  const videoIframe = videoContainer.querySelector('iframe');
-  videoContainer.style.display = 'block';
-  videoIframe.src = `https://vidsrc.xyz/embed/movie/${movieId}`;
-  if (preventStretching) {
-    videoIframe.style.width = '100%';
-    videoIframe.style.height = '100%';
-  }
-  videoContainer.scrollIntoView({
-    behavior: 'smooth'
-  });
-}
-function populateYearFilter() {
-  const yearFilter = document.getElementById('yearFilter');
-  const currentYear = new Date().getFullYear();
-  for (let year = currentYear; year >= 1900; year--) {
-    const option = document.createElement('option');
-    option.value = year;
-    option.textContent = year;
-    yearFilter.appendChild(option);
-  }
-}
-document.getElementById('yearFilter').addEventListener('change', e => {
-  currentFilters.year = e.target.value;
-  currentPage = 1;
-  fetchMovies();
-});
-setupEventListeners();</script>
+</script>
 
 </body>
 </html>
